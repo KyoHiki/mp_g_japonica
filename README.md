@@ -10,8 +10,8 @@ In preparation.
 1. Rcode.md  
 An example R code for analysis and visualization. This code requires an input dataset (i.e., "data.xlsx").  
      
-2. data.xlsx  
-This dataset "data.xlsx" includes the raw data about the number of microbeads ingested by an estuarine amphipod <i>Grandidierella japonica</i>.
+2. Data_for_R_analysis_revised_GitHub_20220524.xlsx  
+This dataset "Data_for_R_analysis_revised_GitHub_20220524.xlsx" includes the raw data about the number of microbeads ingested by an estuarine amphipod <i>Grandidierella japonica</i>.
   
 3. Figs  
 Figures generated from the R code.
