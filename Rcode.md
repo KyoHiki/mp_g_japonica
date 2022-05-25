@@ -1,5 +1,5 @@
 ``` r
-### 2: Import packages ###
+### 1: Import packages ###
 library(groundhog)
 
 groundhog.library("openxlsx",'2022-05-24')  # load the version of the package that was available on the publication date of Hiki & Iwasaki (2020)
