@@ -1,114 +1,157 @@
 ``` r
+### 2: Import packages ###
 library(groundhog)
 
-groundhog.library("openxlsx",'2020-09-14')  # load the version of the package that was available on the publication date of Hiki & Iwasaki (2020)
-groundhog.library("tidyverse",'2020-09-14')
-groundhog.library("ggplot2",'2020-09-14')
-groundhog.library("ggExtra",'2020-09-14')
-groundhog.library("smatr",'2020-09-14')
-groundhog.library("EnvStats",'2020-09-14')
+groundhog.library("openxlsx",'2022-05-24')  # load the version of the package that was available on the publication date of Hiki & Iwasaki (2020)
+groundhog.library("tidyverse",'2022-05-24')
+groundhog.library("ggplot2",'2022-05-24')
+groundhog.library("ggExtra",'2022-05-24')
+groundhog.library("scales",'2022-05-24')
+groundhog.library("EnvStats",'2022-05-24')
 
 
-### 2: Import the example dataset ###
-# This dataset "example.xlsx" includes 20,000 test records randomly selected from the "EnviroTox" database only for demonstration.
-# All the data used in this study was collected from the "EnviroTox" database and please contact the authors if you like to exactly reproduce our results.
-
-EnviroTox_test <- read.xlsx("example.xlsx", sheet=1)
-EnviroTox_chem <- read.xlsx("example.xlsx", sheet=2)
-EnviroTox_taxo <- read.xlsx("example.xlsx", sheet=3)
+### 2: Read the microplastic ingestion data ###
+Beads_data <-  read.xlsx("Data_for_R_analysis_revised.xlsx",sheet="food") 
 
 
-#### 3: Select and process the data ####
-EnviroTox_test_selected <- EnviroTox_test %>%
-  filter (Test.statistic=="EC50" & Test.type=="A" | Test.statistic=="LC50" & Test.type=="A" | Test.statistic=="NOEC" & Test.type=="C" | Test.statistic=="NOEL" & Test.type=="C") %>% 
-  filter (Effect.is.5X.above.water.solubility =="0") %>%
-  mutate (original.CAS = EnviroTox_chem[match(.$CAS, EnviroTox_chem$CAS),"original.CAS"] ) %>%
-  mutate_at(vars(Effect.value), as.numeric) %>%
-  mutate (Effect.value = replace(.$Effect.value, !is.na(.$Effect.value), .$Effect.value * 10^3) ) %>%  # transform unit (mg/L to ug/L)
-  mutate (Unit = replace(Unit, Unit=="mg/L","µg/L"))
+#### 3: Figure 3 ####
+gline_left <- linesGrob(x = c(-.015, .015),  gp = gpar(lwd = 4.1)) 
+gline_right <- linesGrob(x = c(.985, 1.015),  gp = gpar(lwd = 4.1)) 
 
 
-# calculate geometric mean and select chemicals analyzed based on the number of species
-EnviroTox_test_selected2 <- aggregate(EnviroTox_test_selected$Effect.value,
-by=list(original.CAS = EnviroTox_test_selected$original.CAS, Test.type=EnviroTox_test_selected$Test.type, Latin.name=EnviroTox_test_selected$Latin.name), function(x) geoMean(x) ) %>%
-    rename(Effect.value=x) %>%
-    mutate (Trophic.Level = EnviroTox_taxo[match (.$Latin.name, EnviroTox_taxo$Latin.name) ,"Trophic.Level"] ) %>%
-   group_by(original.CAS,Test.type) %>% 
-   filter(n()>=5)
-# goodness-of-fit test
-EnviroTox_test_fitness_sw <- aggregate(EnviroTox_test_selected2$Effect.value,
-by=list(original.CAS=EnviroTox_test_selected2$original.CAS,
-Test.type=EnviroTox_test_selected2$Test.type),
-function(x) shapiro.test(log10( as.numeric(x) ) )$p.value  ) %>%
-    dplyr::rename(p_value=x) %>%
-    mutate(adj_p = p.adjust(p_value,"holm"))
-not_fit_chem <- EnviroTox_test_fitness_sw[EnviroTox_test_fitness_sw$adj_p < 0.05 ,"original.CAS"]
+Fig3_4.1 <- Beads_data %>%
+  pivot_longer(cols=3:4,names_to=c("Beads","Size"),names_pattern="(.*)_(.*)",values_to="Count") %>%
+  filter(Size=="4.1") %>%
+  mutate(Sediment = ifelse(Sediment=="Yes","With sediment \n (Filter-feeding mode)","Without sediment \n (Filter- & deposit-feeding mode)")) %>%
+  mutate(Size = ifelse(Size=="4.1","4.1 μm","20.6 μm")) %>%
+  mutate(Size = fct_relevel(Size,"4.1 μm","20.6 μm")) %>%
+  mutate_at(vars(TetraMin),as.factor) %>%
+  ggplot( aes(x=TetraMin,y=Count,color=Sediment,shape=Sediment) )+
+   facet_wrap(~Size,scale="free_y")+
+   geom_quasirandom(size=4,alpha=0.9,stroke=1,dodge=0.6,aes(x=TetraMin,y=Count,color=Sediment,shape=Sediment))+
+   stat_summary(fun = "median", size = 0.5,width=0.7,position=position_dodge(width=0.6),
+                geom = "crossbar") +
+   stat_boxplot(geom = "errorbar",size = 1,width=0.5,position=position_dodge(width=0.6),
+                aes(ymin = ..lower.., ymax = ..upper..)) +
+   theme_prism(border=TRUE,base_size=27)+
+   theme(legend.position = "none", strip.text = element_text(hjust = 0.05, size=27),
+         axis.title.x=element_blank(),
+         plot.margin = unit(c(0,1,0,1), "lines"),
+         panel.border = element_rect(fill=NA, colour = "black",size=3.7))+
+   scale_color_manual(values=c("#E69F00", "#56B4E9"))+
+   scale_shape_manual(values=c(21,24))+
+   labs(y="Number of beads (/amphipod)",x="TetraMin (mg/amphipod)")+
+   geom_text(x=2,y=5600,label="*",size=13)
 
-#### 4: SSD estimation ####
-EnviroTox_ssd <- aggregate(x=as.numeric(EnviroTox_test_selected2$Effect.value),
-by=list(original.CAS=EnviroTox_test_selected2$original.CAS, Test.type=EnviroTox_test_selected2$Test.type),
-FUN=function(x) mean(log10( x ) ) )  %>%
-  mutate(sd=aggregate(EnviroTox_test_selected2$Effect.value,
-by=list(EnviroTox_test_selected2$original.CAS, EnviroTox_test_selected2$Test.type), function(x) sd(log10( x ) ) )[,3]   )   %>%
-  rename(mean=x) %>%
-  mutate(HC5 = qlnorm (0.05, meanlog=log(10^mean), sdlog=log(10^sd) ) ) %>%
-  mutate (Substance=EnviroTox_chem[match (.$original.CAS, EnviroTox_chem$original.CAS) ,"Chemical.name"]) %>%
-  mutate (No_species = aggregate(EnviroTox_test_selected2$Latin.name,
-by=list(EnviroTox_test_selected2$original.CAS,EnviroTox_test_selected2$Test.type), function(x) length(unique(x)) )[,3]) %>%
-  mutate (No_trophic=aggregate(EnviroTox_test_selected2$Trophic.Level,
-by=list(EnviroTox_test_selected2$original.CAS,EnviroTox_test_selected2$Test.type), function(x) length(unique (x)) )[,3]) %>%
-  filter(!is.na(sd)) %>%
-  mutate(Test.type = replace(Test.type, Test.type=="A", "Acute")) %>%
-  mutate(Test.type = replace(Test.type, Test.type=="C", "Chronic"))%>%
-  pivot_wider(names_from=Test.type, values_from=c("mean","sd","HC5","No_species","No_trophic")) %>%
-  mutate (ConsensusMoA = EnviroTox_chem[match (.$original.CAS, EnviroTox_chem$original.CAS), "Consensus.MOA"] ) %>%
-  mutate (ASTER = EnviroTox_chem[match (.$original.CAS, EnviroTox_chem$original.CAS) ,"ASTER"] )
+Fig3_20.6_200 <- Beads_data %>%
+  pivot_longer(cols=3:4,names_to=c("Beads","Size"),names_pattern="(.*)_(.*)",values_to="Count") %>%
+  filter(Size=="20.6" & Count <=150 ) %>%
+  mutate(Sediment = ifelse(Sediment=="Yes","With sediment","Without sediment")) %>%
+  mutate(Size = ifelse(Size=="20.6","20.6 μm",NA)) %>%
+  mutate(Size = fct_relevel(Size,"20.6 μm")) %>%
+  mutate_at(vars(TetraMin),as.factor) %>%
+  ggplot( aes(x=TetraMin,y=Count,color=Sediment,shape=Sediment) )+
+   facet_wrap(~Size,scale="free_y")+
+   geom_quasirandom(size=4,alpha=0.9,stroke=1,dodge=0.6,aes(x=TetraMin,y=Count,color=Sediment,shape=Sediment))+
+   stat_summary(fun = "median", size = 0.5,width=0.7,position=position_dodge(width=0.6),
+                geom = "crossbar") +
+   stat_boxplot(geom = "errorbar",size = 1,width=0.5,position=position_dodge(width=0.6),
+                aes(ymin = ..lower.., ymax = ..upper..)) +
+   theme_prism(border=FALSE,base_size=27)+
+   theme(legend.position = "none", strip.text = element_blank(), axis.title=element_blank(),
+                  plot.margin = unit(c(-0.1,1,0,1), "lines") )+
+   guides(y = "prism_offset_minor")+
+   coord_cartesian(clip = "off")+
+   scale_color_manual(values=c("#E69F00", "#56B4E9"))+
+   scale_shape_manual(values=c(21,24))+
+   scale_y_continuous(limits = c(0, 150),breaks=seq(0,150,50),labels=c("0","50","100","150"))+
+   labs(y="Number of beads (/amphipod)",x="TetraMin (mg/amphipod)")+
+   annotate(geom = 'segment', x= Inf, xend = Inf, y = -Inf, yend = 150, size=2)+
+   annotate(geom = 'segment', x= -Inf, xend =-Inf, y = -Inf, yend = 150,size=2)+
+   annotation_custom(gline_left,xmin=-Inf,xmax=Inf,ymin=150,ymax=150)+
+   annotation_custom(gline_right,xmin=-Inf,xmax=Inf,ymin=150,ymax=150)
 
+Fig3_20.6_400 <- Beads_data %>%
+  pivot_longer(cols=3:4,names_to=c("Beads","Size"),names_pattern="(.*)_(.*)",values_to="Count") %>%
+  filter(Size=="20.6"& Count >=150 ) %>%
+  mutate(Sediment = ifelse(Sediment=="Yes","With sediment","Without sediment")) %>%
+  mutate(Size = ifelse(Size=="20.6","20.6 μm",NA)) %>%
+  mutate(Size = fct_relevel(Size,"20.6 μm")) %>%
+  mutate_at(vars(TetraMin),as.factor) %>%
+  ggplot( aes(x=TetraMin,y=Count,color=Sediment,shape=Sediment) )+
+   facet_wrap(~Size,scale="free_y")+
+   geom_quasirandom(size=4,alpha=0.9,stroke=1,dodge=0.6,aes(x=TetraMin,y=Count,color=Sediment,shape=Sediment))+
+   theme_prism(border=FALSE,base_size=27)+
+   theme(legend.position = "none",  strip.text = element_text(hjust = 0.05, size=27),
+         axis.title.y=element_blank(), axis.title = element_blank(),
+         axis.text.x = element_blank(),
+         axis.ticks.x = element_blank(),
+         axis.line.x = element_blank(),
+         plot.margin = unit(c(0,1,-0.05,1), "lines"))+
+   guides(y = "prism_offset_minor")+
+   coord_cartesian(clip = "off")+
+   scale_color_manual(values=c( "#56B4E9"))+
+   scale_shape_manual(values=c(24))+
+   scale_y_continuous(limits = c(400, 450),breaks=c(400,450),labels=c("400","450"))+
+   annotate(geom = 'segment', x= Inf, xend = Inf, y = 400, yend = 450, size=2)+
+   annotate(geom = 'segment', x= -Inf, xend =-Inf, y = 400, yend = 450,size=2)+
+   annotate(geom = 'segment', x= -Inf, xend =Inf, y = 450, yend = 450,size=2)+
+   annotation_custom(gline_left,xmin=-Inf,xmax=Inf,ymin=400,ymax=400)+
+   annotation_custom(gline_right,xmin=-Inf,xmax=Inf,ymin=400,ymax=400)
 
-EnviroTox_ssd$ConsensusMoA <- replace (EnviroTox_ssd$ConsensusMoA, which(EnviroTox_ssd$ConsensusMoA=="N"),"Narcotic")
-EnviroTox_ssd$ConsensusMoA <- replace (EnviroTox_ssd$ConsensusMoA, which(EnviroTox_ssd$ConsensusMoA=="U"),"Unclassified")
-EnviroTox_ssd$ConsensusMoA <- replace (EnviroTox_ssd$ConsensusMoA, which(EnviroTox_ssd$ConsensusMoA=="S"),"Specifically acting")
-EnviroTox_ssd$ConsensusMoA <- as.factor(EnviroTox_ssd$ConsensusMoA)
+Fig3_20.6 <- plot_grid(Fig3_20.6_400 , Fig3_20.6_200, ncol=1, rel_heights = c(.18, .42),align="v")
+Fig3 <-  plot_grid(Fig3_4.1 , Fig3_20.6,rel_widths=c(.125,.1))
 
+Fig3_legend <- Beads_data %>%
+  pivot_longer(cols=3:4,names_to=c("Beads","Size"),names_pattern="(.*)_(.*)",values_to="Count") %>%
+  mutate(Sediment = ifelse(Sediment=="Yes","With sediment \n (Filter-feeding mode)","Without sediment \n (Filter- & deposit-feeding modes)")) %>%
+  mutate_at(vars(TetraMin,Run),as.factor) %>%
+  ggplot( aes(x=TetraMin,y=Count,color=Sediment,shape=Sediment) )+
+   facet_wrap(~Size,scale="free_y")+
+   geom_quasirandom(size=6,alpha=0.7,stroke=1.2,dodge=0.6,aes(x=TetraMin,y=Count,color=Sediment,shape=Sediment))+
+   theme_prism(border=TRUE,base_size=25)+
+   theme(legend.key.size = unit(1.5, "cm"),legend.text = element_text(margin = margin(t = 11)))+
+   scale_color_manual(values=c("#E69F00", "#56B4E9"))+
+   scale_shape_manual(values=c(21,24))
+ 
+legend <- get_legend(
+  Fig3_legend + theme(legend.box.margin = margin(0, 0, 2, 4))
+)
+x.grob <- textGrob("TetraMin (mg/amphipod)", gp=gpar(fontface="bold",fontsize=25))
+Fig3_combined <- grid.arrange(arrangeGrob(Fig3, bottom = x.grob ))
 
-#### 5: Select chemicals analyzed based on results of Shapiro-Wilk test and proportions of taxonomic groups ####
-EnviroTox_ssd_HH <- EnviroTox_ssd %>%
-  filter(! original.CAS %in% not_fit_chem ) %>%
-  filter (No_trophic_Acute >= 2 & No_trophic_Chronic >=2 ) %>%
-  separate (Substance, into=c("Short_name"), sep=";", extra="drop")
-# Check the number of SSDs
-# Acute and chronic SSDs for a total of 33 chemicals were derived in this case.
-dim(EnviroTox_ssd_HH)
+Fig3 <- plot_grid(Fig3_combined,  legend, rel_widths = c(1.6, 0.95),ncol=2)
+
+Fig3
 ```
 
-    ## [1] 33 14
+![](figs/fig-3.png)
 
 ``` r
-#### 6: Fig.1A Relationship between chronic and acute SSD means ####
-# standardized major axis regression
-fit_mean_sma <- sma(data=EnviroTox_ssd_HH, mean_Chronic ~ mean_Acute)
+#### 4: Figure 4 ####
+Fig4 <- Beads_data %>%
+  mutate(Sediment = ifelse(Sediment=="Yes","With sediment","Without sediment")) %>%
+  mutate(TetraMin = ifelse(TetraMin=="0","0 mg",ifelse(TetraMin=="5","5 mg","20 mg") )) %>%
+  mutate_at(vars(TetraMin),as.factor) %>%
+  mutate(TetraMin = fct_relevel(TetraMin,"0 mg","5 mg") ) %>%
+  ggplot(aes(x=Beads_20.6,y=Beads_4.1,color=Sediment,shape=TetraMin))+
+   geom_point(size=3.5,stroke=1.2)+
+   theme_prism(border=TRUE,base_size=27)+
+   theme( )+
+   labs(y="Number of 4.1 μm beads",x="Number of 20.6 μm beads",shape="TetraMin")+
+   guides(shape=guide_legend(title="TetraMin")) +
+   coord_cartesian(clip = "off")+
+   scale_color_manual(values=c("#E69F00", "#56B4E9"))+
+   scale_shape_manual(name="TetraMin",values=c(3,24,25)) +
+   geom_segment(aes(x=0,y=0,yend=12000,xend=12000*(4.1^3/20.6^3) ),lty="dotted",size=1.25,color="black")+
+   geom_segment(aes(x=0,y=0,yend=2250,xend=2250*(25.24*4.1^3/20.6^3) ),size=1.25,color="black")+
+   annotate (geom="text",y=2600,x=340,label="italic(y) == 5.0 *italic(x)",
+             size=6.5, parse=TRUE )+
+   annotate (geom="text",y=9600,x=185,label="italic(y) == 130 *italic(x)",
+             size=6.5, parse=TRUE )+
+   annotate(geom="text",y=4400, x=340, label="Theoretical ratio \n on bottom",size=6.5)+
+   annotate(geom="text",y=11000, x=185, label="Theoretical ratio \n in water",size=6.5)
 
-# plot
-mean_plot <-  ggplot(data=EnviroTox_ssd_HH, aes(x=mean_Acute, y=mean_Chronic, size=pmin(No_species_Chronic,No_species_Acute) ))+
-  geom_point(alpha=0.9, aes(color=ConsensusMoA) )+
-  geom_point(alpha=0.9, pch=21)+
-  geom_abline(slope=1, intercept=0,size=0.5, lty="dotted")+
-  geom_abline(slope=1, intercept=-1,size=0.5, lty="dashed")+
-  geom_abline(slope=1, intercept=-2,size=0.5, lty="dotted")+
-  theme_bw(base_size=20) +
-  theme(axis.text = element_text(color="black"), panel.grid=element_blank(), legend.position = 'none' )+
-  scale_color_grey(start=0.2,end=0.99)+
-  xlab(expression(paste(Log[10]," acute mean (μg/L)")) )+
-  ylab(expression(paste(Log[10]," chronic mean (μg/L)")) )+
-  geom_abline(intercept=fit_mean_sma$coef[[1]][1,1], slope=fit_mean_sma$coef[[1]][2,1], col="black", size=1.2)
-Fig1A<- ggMarginal(mean_plot, type = "box", margins = "both", size = 5, groupFill = TRUE)
-Fig1A
+Fig4
 ```
-
-![](SSD_chronic_figs/figs-1A-1.png)
-
-``` r
-#### 7: Fig. 1B Relationship between chronic and acute SSD SDs ####
-# standardized major axis regression
-fit_sd_sma <- sma(data=EnviroTox_ssd_HH, sd_Chronic ~ sd_Acute)
-```
+![](figs/fig-4.png)
