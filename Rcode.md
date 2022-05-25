@@ -2,11 +2,14 @@
 ### 1: Import packages ###
 library(groundhog)
 
-groundhog.library("openxlsx",'2022-05-24',tolerate.R.version='4.1.3')  # load the version of the package that was available on the publication date of Hiki & Iwasaki (2020)
+groundhog.library("openxlsx",'2022-05-24',tolerate.R.version='4.1.3')  # load the version of the package that was available on the publication date of Hiki & Nakajima  (2022)
 groundhog.library("tidyverse",'2022-05-24',tolerate.R.version='4.1.3')
 groundhog.library("ggplot2",'2022-05-24',tolerate.R.version='4.1.3')
 groundhog.library("ggExtra",'2022-05-24',tolerate.R.version='4.1.3')
+groundhog.library("ggprism",'2022-05-24',tolerate.R.version='4.1.3')
 groundhog.library("scales",'2022-05-24',tolerate.R.version='4.1.3')
+groundhog.library("grid",'2022-05-24',tolerate.R.version='4.1.3')
+groundhog.library("ggbeeswarm",'2022-05-24',tolerate.R.version='4.1.3')
 groundhog.library("EnvStats",'2022-05-24',tolerate.R.version='4.1.3')
 
 
