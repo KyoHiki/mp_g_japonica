@@ -125,7 +125,7 @@ Fig3 <- plot_grid(Fig3_combined,  legend, rel_widths = c(1.6, 0.95),ncol=2)
 Fig3
 ```
 
-![](figs/fig-3.png)
+![](figs/fig3.png)
 
 ``` r
 #### 4: Figure 4 ####
@@ -154,4 +154,4 @@ Fig4 <- Beads_data %>%
 
 Fig4
 ```
-![](figs/fig-4.png)
+![](figs/fig4.png)
