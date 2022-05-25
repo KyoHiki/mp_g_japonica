@@ -1,5 +1,5 @@
 ``` r
-### 1: Import packages ###
+#### 1: Import packages ####
 library(groundhog)
 
 groundhog.library("openxlsx",'2022-05-24',tolerate.R.version='4.1.3')  # load the version of the package that was available on the publication date of Hiki & Nakajima  (2022)
@@ -13,7 +13,7 @@ groundhog.library("ggbeeswarm",'2022-05-24',tolerate.R.version='4.1.3')
 groundhog.library("EnvStats",'2022-05-24',tolerate.R.version='4.1.3')
 
 
-### 2: Read the microplastic ingestion data ###
+#### 2: Read the microplastic ingestion data ####
 Beads_data <-  read.xlsx("Data_for_R_analysis_revised_GitHub_20220524.xlsx",sheet="food") 
 
 
