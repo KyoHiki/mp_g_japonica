@@ -2,16 +2,16 @@
 ### 1: Import packages ###
 library(groundhog)
 
-groundhog.library("openxlsx",'2022-05-24')  # load the version of the package that was available on the publication date of Hiki & Iwasaki (2020)
-groundhog.library("tidyverse",'2022-05-24')
-groundhog.library("ggplot2",'2022-05-24')
-groundhog.library("ggExtra",'2022-05-24')
-groundhog.library("scales",'2022-05-24')
-groundhog.library("EnvStats",'2022-05-24')
+groundhog.library("openxlsx",'2022-05-24',tolerate.R.version='4.1.3')  # load the version of the package that was available on the publication date of Hiki & Iwasaki (2020)
+groundhog.library("tidyverse",'2022-05-24',tolerate.R.version='4.1.3')
+groundhog.library("ggplot2",'2022-05-24',tolerate.R.version='4.1.3')
+groundhog.library("ggExtra",'2022-05-24',tolerate.R.version='4.1.3')
+groundhog.library("scales",'2022-05-24',tolerate.R.version='4.1.3')
+groundhog.library("EnvStats",'2022-05-24',tolerate.R.version='4.1.3')
 
 
 ### 2: Read the microplastic ingestion data ###
-Beads_data <-  read.xlsx("Data_for_R_analysis_revised.xlsx",sheet="food") 
+Beads_data <-  read.xlsx("Data_for_R_analysis_revised_GitHub_20220524.xlsx",sheet="food") 
 
 
 #### 3: Figure 3 ####
