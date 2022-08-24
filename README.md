@@ -1,5 +1,5 @@
 # What is this page?
-This page shows the raw data and R code to reproduce the figures in Hiki & Nakajima (in preparation). 
+This page shows the raw data and R code to reproduce the figures in Hiki & Nakajima (2022, JWET). 
 
 
 # Objective  
@@ -17,4 +17,4 @@ This dataset "Data_for_R_analysis_revised_GitHub_20220524.xlsx" includes the raw
 Figures generated from the R code.
 
 # Publication
-Hiki & Nakajima, 2022, XXXX.
+Hiki & Nakajima, 2022, Microplastic ingestion by a benthic amphipod in different feeding modes, Journal of Water and Environment Technology, accepted.
