@@ -17,4 +17,4 @@ This dataset "Data_for_R_analysis_revised_GitHub_20220524.xlsx" includes the raw
 Figures generated from the R code.
 
 # Publication
-Hiki & Nakajima, 2022, Microplastic ingestion by a benthic amphipod in different feeding modes, Journal of Water and Environment Technology, accepted.
+Hiki & Nakajima, 2022, Microplastic ingestion by a benthic amphipod in different feeding modes, Journal of Water and Environment Technology, 20(5): 137-144. DOI: 10.2965/jwet.22-057  
